@@ -52,6 +52,8 @@ export interface PatientDetail extends PatientListItem {
   guardians: Guardian[];
   medical_history: MedicalHistoryEntry[];
   allergies: Allergy[];
+  // Optional flag returned upon patient creation indicating if potential duplicate records were found
+  has_duplicates?: boolean;
 }
 
 export interface NewPatientPayload {

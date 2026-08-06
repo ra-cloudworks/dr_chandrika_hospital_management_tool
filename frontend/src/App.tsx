@@ -9,6 +9,7 @@ import LoginHistoryPage from "./features/auth/LoginHistoryPage";
 import { PatientListPage } from "./features/patients/PatientListPage";
 import { NewPatientPage } from "./features/patients/NewPatientPage";
 import { PatientDetailPage } from "./features/patients/PatientDetailPage";
+import { DuplicateQueuePage } from "./features/duplicates/DuplicateQueuePage";
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
                 <Route path="/patients" element={<PatientListPage />} />
                 <Route path="/patients/new" element={<NewPatientPage />} />
                 <Route path="/patients/:id" element={<PatientDetailPage />} />
+                <Route path="/duplicates" element={<DuplicateQueuePage />} />
               </Route>
             </Route>
           </Route>

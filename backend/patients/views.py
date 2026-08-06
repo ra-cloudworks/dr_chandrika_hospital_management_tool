@@ -1,4 +1,8 @@
-from rest_framework import generics, permissions
+from django.db import models
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+from duplicates.detection import find_duplicates_for
+from duplicates.models import DuplicateFlag
 from .models import Patient, MedicalHistory, Allergy, Guardian
 from .serializers import (
     PatientListSerializer, PatientDetailSerializer, PatientPortalSerializer,
@@ -22,8 +26,28 @@ class PatientListCreateView(generics.ListCreateAPIView):
     def get_serializer_class(self):
         return PatientDetailSerializer if self.request.method == "POST" else PatientListSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(registered_by=self.request.user)
+    # Overriding create method to trigger automatic duplicate scanning when registering a new patient
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        # Save the new patient record with the currently logged-in user
+        patient = serializer.save(registered_by=self.request.user)
+
+        # Trigger duplicate scan for the newly registered patient against active records
+        find_duplicates_for(patient)
+
+        # Check if any pending duplicate flag was generated involving this newly created patient
+        has_duplicates = DuplicateFlag.objects.filter(
+            status="pending"
+        ).filter(
+            models.Q(patient_a=patient) | models.Q(patient_b=patient)
+        ).exists()
+
+        data = serializer.data
+        # Attach has_duplicates flag to response so frontend knows whether to navigate to /duplicates
+        data["has_duplicates"] = has_duplicates
+        headers = self.get_success_headers(data)
+        return Response(data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class PatientDetailView(generics.RetrieveUpdateDestroyAPIView):

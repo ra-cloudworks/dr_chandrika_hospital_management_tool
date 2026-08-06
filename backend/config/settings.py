@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'accounts',
     'patients',
+    'duplicates',
 ]
 
 REST_FRAMEWORK = {
@@ -50,6 +52,18 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+}
+
+# SimpleJWT configuration for access and refresh token duration settings
+SIMPLE_JWT = {
+    # Extends the access token lifetime to 8 hours to prevent frequent logouts
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=8),
+    # Extends the refresh token lifetime to 7 days for long-term authentication sessions
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    # Disable automatic rotation of refresh tokens upon each refresh request
+    "ROTATE_REFRESH_TOKENS": False,
+    # Disable blacklisting tokens after rotation
+    "BLACKLIST_AFTER_ROTATION": False,
 }
 
 MIDDLEWARE = [

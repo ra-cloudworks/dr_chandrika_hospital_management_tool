@@ -12,7 +12,13 @@ export function NewPatientPage() {
     setSubmitting(true);
     try {
       const res = await createPatient(data);
-      navigate(`/patients/${res.data.id}`);
+      // If backend duplicate scan flagged matching patient records, redirect to /duplicates to merge
+      if (res.data.has_duplicates) {
+        navigate("/duplicates");
+      } else {
+        // Otherwise, navigate directly to the newly registered patient's detail profile
+        navigate(`/patients/${res.data.id}`);
+      }
     } catch (err) {
       alert("Could not register patient — check required fields.");
     } finally {
