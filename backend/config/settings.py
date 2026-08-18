@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'accounts',
     'patients',
     'duplicates',
+    'vitals',
+    'dental_chart'
 ]
 
 REST_FRAMEWORK = {
