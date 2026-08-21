@@ -44,7 +44,9 @@ INSTALLED_APPS = [
     'patients',
     'duplicates',
     'vitals',
-    'dental_chart'
+    'dental_chart',
+    'perio_chart',
+    'treatment_plans'
 ]
 
 REST_FRAMEWORK = {

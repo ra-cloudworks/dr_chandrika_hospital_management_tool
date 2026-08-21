@@ -24,4 +24,6 @@ urlpatterns = [
     path("api/duplicates/", include("duplicates.urls")),
     path("api/vitals/", include("vitals.urls")),
     path("api/dental-chart/", include("dental_chart.urls")),
+    path("api/perio-chart/", include("perio_chart.urls")),
+    path("api/treatment-plans/", include("treatment_plans.urls")),
 ]

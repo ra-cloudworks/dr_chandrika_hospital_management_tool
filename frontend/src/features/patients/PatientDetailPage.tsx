@@ -16,7 +16,19 @@ import type { ToothRecord, NewToothRecordPayload } from "../../types/dentalChart
 import { ToothGrid } from "../dental-chart/components/ToothGrid";
 import { ToothDetailPanel } from "../dental-chart/components/ToothDetailPanel";
 
-type Tab = "demographics" | "medical" | "allergies" | "vitals" | "dental-chart";
+// Periodontal Charts
+import { listPerioExams, createPerioExam } from "../../api/perioChartApi";
+import type { PerioExam, NewPerioExamPayload } from "../../types/perioChart.types";
+import { PerioExamBuilder } from "../perio-chart/components/PerioExamBuilder";
+import { PerioExamHistory } from "../perio-chart/components/PerioExamHistory";
+
+// Treatment Plans
+import { listTreatmentPlans, createTreatmentPlan, addPlanItem, proposePlan, revisePlan } from "../../api/treatmentPlanApi";
+import type { TreatmentPlan, NewPlanPayload, NewItemPayload } from "../../types/treatmentPlan.types";
+import { PlanBuilder } from "../treatment-plans/components/PlanBuilder";
+import { PlanList } from "../treatment-plans/components/PlanList";
+
+type Tab = "demographics" | "medical" | "allergies" | "vitals" | "dental-chart" | "perio-chart" | "treatment-plan";
 
 export function PatientDetailPage() {
   const { id } = useParams();
@@ -28,6 +40,11 @@ export function PatientDetailPage() {
   const [toothRecords, setToothRecords] = useState<ToothRecord[]>([]);
   const [activeTooth, setActiveTooth] = useState<string | null>(null);
   const [savingTooth, setSavingTooth] = useState(false);
+  // Periodontal Charts
+  const [perioExams, setPerioExams] = useState<PerioExam[]>([]);
+  const [savingExam, setSavingExam] = useState(false);
+  // Treatment Plans
+  const [plans, setPlans] = useState<TreatmentPlan[]>([]);
 
   const load = () => {
     if (id) getPatient(Number(id)).then((res) => setPatient(res.data));
@@ -41,9 +58,19 @@ export function PatientDetailPage() {
     if (id) listToothRecords(Number(id)).then((res) => setToothRecords(res.data));
   };
 
+  const loadPerioExams = () => {
+    if (id) listPerioExams(Number(id)).then((res) => setPerioExams(res.data));
+  };
+
+  const loadPlans = () => {
+    if (id) listTreatmentPlans(Number(id)).then((res) => setPlans(res.data));
+  };
+
   useEffect(load, [id]);
   useEffect(loadVitals, [id]);
   useEffect(loadToothRecords, [id]);
+  useEffect(loadPerioExams, [id]);
+  useEffect(loadPlans, [id]);
 
   const handleVitalsSubmit = async (data: NewVitalsPayload) => {
     if (!id) return;
@@ -68,6 +95,30 @@ export function PatientDetailPage() {
     }
   };
 
+  const handleExamSubmit = async (data: NewPerioExamPayload) => {
+    if (!id) return;
+    setSavingExam(true);
+    try {
+      await createPerioExam(Number(id), data);
+      loadPerioExams();
+    } finally {
+      setSavingExam(false);
+    }
+  };
+
+  // Treatment Plan Handlers
+  const handleCreatePlan = async (data: NewPlanPayload) => {
+    const res = await createTreatmentPlan(Number(id), data);
+    loadPlans();
+    return res.data.id;
+  };
+  const handleAddItem = async (planId: number, data: NewItemPayload) => {
+    await addPlanItem(planId, data);
+    loadPlans();
+  };
+  const handlePropose = async (planId: number) => { await proposePlan(planId); loadPlans(); };
+  const handleRevise = async (planId: number, reason: string) => { await revisePlan(planId, reason); loadPlans(); };
+
   if (!patient) return <p className="p-6">Loading...</p>;
 
   return (
@@ -78,7 +129,7 @@ export function PatientDetailPage() {
       <p className="text-gray-500 mb-4">{patient.patient_code}</p>
 
       <div className="flex gap-4 border-b mb-4">
-        {(["demographics", "medical", "allergies", "vitals", "dental-chart"] as Tab[]).map((t) => (
+        {(["demographics", "medical", "allergies", "vitals", "dental-chart", "perio-chart", "treatment-plan"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -127,6 +178,23 @@ export function PatientDetailPage() {
               submitting={savingTooth}
             />
           )}
+        </div>
+      )}
+      {tab === "perio-chart" && (
+        <div>
+          <PerioExamBuilder onSubmitExam={handleExamSubmit} submitting={savingExam} />
+          <div className="mt-6">
+            <h3 className="font-medium mb-2">Past Exams</h3>
+            <PerioExamHistory exams={perioExams} />
+          </div>
+        </div>
+      )}
+      {tab === "treatment-plan" && (
+        <div>
+          <PlanBuilder onCreatePlan={handleCreatePlan} onAddItem={handleAddItem} />
+          <div className="mt-4">
+            <PlanList plans={plans} onPropose={handlePropose} onRevise={handleRevise} />
+          </div>
         </div>
       )}
     </div>
