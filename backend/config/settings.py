@@ -46,7 +46,9 @@ INSTALLED_APPS = [
     'vitals',
     'dental_chart',
     'perio_chart',
-    'treatment_plans'
+    'treatment_plans',
+    'case_files',
+    'case_media',
 ]
 
 REST_FRAMEWORK = {
@@ -158,3 +160,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "mediafiles"

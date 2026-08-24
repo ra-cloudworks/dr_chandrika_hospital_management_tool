@@ -53,10 +53,19 @@ class TreatmentPlanItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [TreatmentPlanPermission]
 
     def perform_update(self, serializer):
+        item = self.get_object()
+        if item.plan.status != "draft":
+            raise serializers.ValidationError(
+                "This plan has already been proposed. Use the /revise/ endpoint to make changes."
+            )
         item = serializer.save()
         item.plan.recalculate_total()
 
     def perform_destroy(self, instance):
+        if instance.plan.status != "draft":
+            raise serializers.ValidationError(
+                "This plan has already been proposed. Use the /revise/ endpoint to make changes."
+            )
         plan = instance.plan
         instance.delete()
         plan.recalculate_total()

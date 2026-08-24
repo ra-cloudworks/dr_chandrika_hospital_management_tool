@@ -28,7 +28,20 @@ import type { TreatmentPlan, NewPlanPayload, NewItemPayload } from "../../types/
 import { PlanBuilder } from "../treatment-plans/components/PlanBuilder";
 import { PlanList } from "../treatment-plans/components/PlanList";
 
-type Tab = "demographics" | "medical" | "allergies" | "vitals" | "dental-chart" | "perio-chart" | "treatment-plan";
+// Case Files
+import { listCases, createCase, addVisitNote, closeCase } from "../../api/caseFileApi";
+import type { Case, NewCasePayload, NewVisitNotePayload } from "../../types/caseFile.types";
+import { NewCaseForm } from "../case-files/components/NewCaseForm";
+import { CaseList } from "../case-files/components/CaseList";
+
+// Case Media
+import { listMedia, uploadMedia, softDeleteMedia } from "../../api/caseMediaApi";
+import type { MediaFile } from "../../types/caseMedia.types";
+import { MediaUploadForm } from "../case-media/components/MediaUploadForm";
+import { MediaGallery } from "../case-media/components/MediaGallery";
+
+type Tab = "demographics" | "medical" | "allergies" | "vitals" | "dental-chart" | "perio-chart" | "treatment-plan" | "cases" | "media";
+
 
 export function PatientDetailPage() {
   const { id } = useParams();
@@ -45,6 +58,11 @@ export function PatientDetailPage() {
   const [savingExam, setSavingExam] = useState(false);
   // Treatment Plans
   const [plans, setPlans] = useState<TreatmentPlan[]>([]);
+  // Case Files
+  const [cases, setCases] = useState<Case[]>([]);
+  // Case Media
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const load = () => {
     if (id) getPatient(Number(id)).then((res) => setPatient(res.data));
@@ -66,11 +84,21 @@ export function PatientDetailPage() {
     if (id) listTreatmentPlans(Number(id)).then((res) => setPlans(res.data));
   };
 
+  const loadCases = () => {
+    if (id) listCases(Number(id)).then((res) => setCases(res.data));
+  };
+
+  const loadMedia = () => {
+    if (id) listMedia(Number(id)).then((res) => setMediaFiles(res.data));
+  };
+
   useEffect(load, [id]);
   useEffect(loadVitals, [id]);
   useEffect(loadToothRecords, [id]);
   useEffect(loadPerioExams, [id]);
   useEffect(loadPlans, [id]);
+  useEffect(loadCases, [id]);
+  useEffect(loadMedia, [id]);
 
   const handleVitalsSubmit = async (data: NewVitalsPayload) => {
     if (!id) return;
@@ -119,6 +147,37 @@ export function PatientDetailPage() {
   const handlePropose = async (planId: number) => { await proposePlan(planId); loadPlans(); };
   const handleRevise = async (planId: number, reason: string) => { await revisePlan(planId, reason); loadPlans(); };
 
+  // Case Files
+  const handleCreateCase = async (data: NewCasePayload) => {
+    if (!id) return;
+    await createCase(Number(id), data);
+    loadCases();
+  };
+  const handleAddVisitNote = async (caseId: number, data: NewVisitNotePayload) => {
+    await addVisitNote(caseId, data);
+    loadCases();
+  };
+  const handleCloseCase = async (caseId: number, summary: string) => {
+    await closeCase(caseId, summary);
+    loadCases();
+  };
+
+  // Case Media
+  const handleUpload = async (formData: FormData) => {
+    if (!id) return;
+    setUploading(true);
+    try {
+      await uploadMedia(Number(id), formData);
+      loadMedia();
+    } finally {
+      setUploading(false);
+    }
+  };
+  const handleDelete = async (mediaId: number, reason: string) => {
+    await softDeleteMedia(mediaId, reason);
+    loadMedia();
+  };
+
   if (!patient) return <p className="p-6">Loading...</p>;
 
   return (
@@ -129,7 +188,7 @@ export function PatientDetailPage() {
       <p className="text-gray-500 mb-4">{patient.patient_code}</p>
 
       <div className="flex gap-4 border-b mb-4">
-        {(["demographics", "medical", "allergies", "vitals", "dental-chart", "perio-chart", "treatment-plan"] as Tab[]).map((t) => (
+        {(["demographics", "medical", "allergies", "vitals", "dental-chart", "perio-chart", "treatment-plan", "cases", "media"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -195,6 +254,18 @@ export function PatientDetailPage() {
           <div className="mt-4">
             <PlanList plans={plans} onPropose={handlePropose} onRevise={handleRevise} />
           </div>
+        </div>
+      )}
+      {tab === "cases" && (
+        <div>
+          <NewCaseForm onSubmit={handleCreateCase} />
+          <CaseList cases={cases} onAddVisitNote={handleAddVisitNote} onCloseCase={handleCloseCase} />
+        </div>
+      )}
+      {tab === "media" && (
+        <div>
+          <MediaUploadForm onUpload={handleUpload} uploading={uploading} />
+          <MediaGallery files={mediaFiles} onDelete={handleDelete} />
         </div>
       )}
     </div>
