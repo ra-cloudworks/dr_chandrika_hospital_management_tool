@@ -1,0 +1,5 @@
+[tool.taskipy.tasks]
+# Run Django server
+dev = "python manage.py runserver"
+# Run migrations
+migrate = "python manage.py migrate"
