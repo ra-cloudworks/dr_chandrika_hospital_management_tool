@@ -21,6 +21,8 @@ A modern, full-stack Electronic Health Record (EHR) and clinical workflow manage
    - [5. Interactive Dental Chart / Odontogram (`dental_chart`)](#5-interactive-dental-chart--odontogram-dental_chart)
    - [6. Periodontal Charting & Gum Health (`perio_chart`)](#6-periodontal-charting--gum-health-perio_chart)
    - [7. Treatment Planning & Consent (`treatment_plans`)](#7-treatment-planning--consent-treatment_plans)
+   - [8. Clinical Case Files (`case_files`)](#8-clinical-case-files-case_files)
+   - [9. Case Media & File Management (`case_media`)](#9-case-media--file-management-case_media)
 4. [Technology Stack](#-technology-stack)
 5. [System Architecture & Data Flow](#-system-architecture--data-flow)
 6. [Getting Started & Installation](#-getting-started--installation)
@@ -51,6 +53,8 @@ Healthcare practices—especially combined dental and general outpatient clinics
 * **6-Point Periodontal Examination Chart:** Site-specific pocket depth (mm), gingival recession (mm), clinical attachment loss (CAL), bleeding on probing (BOP), suppuration, mobility grades, and furcation involvement per tooth.
 * **Treatment Planning & Patient Consent:** Itemized multi-phase procedure planning (Urgent, Preventive, Restorative, Cosmetic), cost estimation breakdown, plan proposal locking, digital patient consent sign-off (accept/reject with timestamp and signature), and immutable revision version logging.
 * **Comparative Clinical History:** Immutable event logging per tooth and historical periodontal examination visual comparisons.
+* **Problem-Oriented Case Files:** End-to-end clinical problem tracking grouping visit notes, patient complaints, clinical findings, interventions, batch-tracked materials for traceability, and multi-visit timelines under issue-specific folders.
+* **Digital Case Media & File Management:** Storage, retrieval, and browser rendering of X-rays, clinical photos, and consent documents with automatic patient/case linking, version retention on re-upload, and audit-logged removal restricted to Chief Doctors.
 
 ---
 
@@ -105,6 +109,28 @@ Healthcare practices—especially combined dental and general outpatient clinics
   4. **Revision Audit Logging:** If treatment needs change mid-way, doctors must provide a mandatory reason. The system creates a full snapshot in `TreatmentPlanRevisionLog`, increments the revision number (v1, v2...), and resets to draft for new consent.
 * **Why included:** Protects both patient and practice. Patients receive clear cost transparency and procedure expectations before treatment starts. Clinicians maintain an immutable paper trail of agreed plans and revisions, ensuring legal compliance and preventing financial disputes.
 
+<!-- Module 8: Clinical Case Files Documentation -->
+### 8. Clinical Case Files (`case_files`)
+* **What it does:** Organizes patient clinical records into problem-oriented case folders (e.g., *"Root Canal – Tooth 36"*), capturing the overall story of a specific clinical problem from start to finish. Each case file serves as a master container grouping every visit note tied to that specific issue:
+  * **Patient Complaints & Doctor Findings:** Records what the patient reported and clinical diagnostic observations.
+  * **Interventions & Procedures:** Documents exact steps taken during each visit under the case timeline.
+  * **Material Traceability:** Logs dental materials used along with **batch numbers** to ensure full traceability in case of material defects or failure.
+  * **Case Closure & Outcomes:** Records resolution status and post-procedure summary once treatment concludes.
+  * **Multiple Concurrent Cases:** Patients can have several active case folders simultaneously (e.g., an ongoing orthodontic alignment, a completed filling, and an emergency triage visit), with each case retaining its own independent, ordered timeline of visits underneath it.
+* **Why included:** Every other clinical module captures isolated data types (vitals, teeth condition, gum measurements, treatment plans). The Case File module ties these scattered records together into a cohesive, chronological story. When a doctor opens a patient's chart, they can immediately view the entire trajectory of a specific problem without manually piecing together individual visit logs.
+
+<!-- Module 9: Case Media & File Management Documentation -->
+### 9. Case Media & File Management (`case_media`)
+* **What it does:** Provides digital storage and management for actual binary files, acting as the digital counterpart to a physical clinic document folder:
+  * **Supported Media Types:** Diagnostic X-ray images, clinical photographs (before/after shots, intraoral photos), and digital documents (signed consent forms, referral letters, lab reports).
+  * **Automatic Case & Tooth Linking:** Uploaded media files are automatically indexed and searchable by patient ID, case file, or specific tooth number.
+  * **Version Retention Safeguard:** Re-uploading a clearer X-ray or updated document does not overwrite or destroy the existing file. The system retains older uploads as "previous versions" for historical audit trails.
+  * **Permanent Deletion Protection:** Files cannot be permanently erased from the system by standard users. Only a **Chief Doctor** can mark a file as removed, requiring a mandatory reason that is logged in the system audit trail.
+* **Key Technical Implementations:**
+  * **Multipart File Uploads:** Supports binary multi-part form data uploads handling actual media files beyond traditional JSON API payloads.
+  * **Browser Media Serving:** Implements media file serving endpoints and proper headers enabling inline browser viewing of X-rays, photos, and document previews.
+* **Why included:** Eliminates paper file clutter while safeguarding sensitive diagnostic media. Automated linking ensures quick access during procedures, while versioning and restricted deletion protect the practice against accidental data loss or legal non-compliance.
+
 ---
 
 ## Technology Stack
@@ -135,8 +161,10 @@ Healthcare practices—especially combined dental and general outpatient clinics
 |  +-------------------+  +-------------------+  +-------------------+  |
 |  | Dental Odontogram |  | Periodontal Chart |  | Treatment Plans   |  |
 |  +-------------------+  +-------------------+  +-------------------+  |
+|  | Case Files        |  | Case Media        |                         |
+|  +-------------------+  +-------------------+                         |
 +-----------------------------------||----------------------------------+
-                                    || HTTP REST / JWT Headers
+                                    || HTTP REST / Multipart / JWT
 +-----------------------------------\/----------------------------------+
 |                            DJANGO BACKEND API                         |
 |                                                                       |
@@ -147,11 +175,13 @@ Healthcare practices—especially combined dental and general outpatient clinics
 |   /api/dental-chart/   -> Tooth Records, FDI Mapping, Surface Details |
 |   /api/perio-chart/    -> 6-Site Probe Depth, BOP, Mobility & Exams   |
 |   /api/treatment-plans/-> Plan Building, Pricing, Consent & Revisions   |
+|   /api/case-files/     -> Problem Folders, Visit Timelines & Batches  |
+|   /api/case-media/     -> File Uploads, Media Serving & Versioning    |
 +-----------------------------------||----------------------------------+
-                                    || ORM Queries
+                                    || ORM Queries / Media Storage
 +-----------------------------------\/----------------------------------+
-|                           RELATIONAL DATABASE                         |
-|               [PostgreSQL / SQLite Database Storage]                 |
+|                           RELATIONAL DATABASE & MEDIA                 |
+|               [PostgreSQL / SQLite Database & File Storage]           |
 +-----------------------------------------------------------------------+
 ```
 
