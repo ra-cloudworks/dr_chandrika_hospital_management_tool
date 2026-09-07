@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-
+import { AppointmentModal } from "../../features/appointments/AppointmentModal";
 
 // Component mapping for page titles based on route
 const ROUTE_TITLES: Record<string, string> = {
   "/": "Dashboard",
   "/staff": "Staff Management",
   "/patients": "Patient Records",
+  "/appointments": "Appointments",
   "/history": "Login History",
   "/profile": "My Profile",
 };
@@ -15,6 +17,7 @@ export function MainLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [showNewAppointment, setShowNewAppointment] = useState(false);
 
   const currentPath = location.pathname;
   const pageTitle = ROUTE_TITLES[currentPath] || "Chandrika Dental Care";
@@ -65,12 +68,12 @@ export function MainLayout() {
 
         <nav className="flex-1 space-y-1">
           {/* Dashboard link */}
-          <Link to="/" className={getLinkClass("/")}>
+          {/* <Link to="/" className={getLinkClass("/")}>
             <span className="material-symbols-outlined">dashboard</span>
             <span>Dashboard</span>
-          </Link>
+          </Link> */}
 
-          {/* Staff list link (restricted to roles that manage staff or just visible to all staff, let's keep visible for demo) */}
+          {/* Staff list link */}
           <Link to="/staff" className={getLinkClass("/staff")}>
             <span className="material-symbols-outlined">group</span>
             <span>Staff</span>
@@ -82,11 +85,17 @@ export function MainLayout() {
             <span>Patients</span>
           </Link>
 
+          {/* Appointments link */}
+          <Link to="/appointments" className={getLinkClass("/appointments")}>
+            <span className="material-symbols-outlined">calendar_month</span>
+            <span>Appointments</span>
+          </Link>
+
           {/* Login History link */}
-          <Link to="/history" className={getLinkClass("/history")}>
+          {/* <Link to="/history" className={getLinkClass("/history")}>
             <span className="material-symbols-outlined">history</span>
             <span>Login History</span>
-          </Link>
+          </Link> */}
 
           {/* Profile link */}
           <Link to="/profile" className={getLinkClass("/profile")}>
@@ -97,7 +106,10 @@ export function MainLayout() {
 
         <div className="px-4 mt-auto">
           {/* Quick action button */}
-          <button className="w-full bg-primary text-on-primary py-3 px-4 rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 shadow-sm hover:opacity-90 transition-opacity">
+          <button
+            onClick={() => setShowNewAppointment(true)}
+            className="w-full bg-primary text-on-primary py-3 px-4 rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 shadow-sm hover:opacity-90 transition-opacity"
+          >
             <span className="material-symbols-outlined text-[20px]">add</span>
             <span>New Appointment</span>
           </button>
@@ -118,7 +130,7 @@ export function MainLayout() {
         {/* TopNavBar */}
         <header className="fixed top-0 left-[260px] right-0 h-16 bg-surface border-b border-outline-variant flex items-center justify-between px-8 z-40">
           <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">{pageTitle}</h2>
-          
+
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <button className="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors relative">
@@ -129,9 +141,9 @@ export function MainLayout() {
                 <span className="material-symbols-outlined">settings</span>
               </button>
             </div>
-            
+
             <div className="h-8 w-px bg-outline-variant"></div>
-            
+
             {/* User Profile Card */}
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
@@ -142,7 +154,7 @@ export function MainLayout() {
                   {user ? formatRole(user.role) : ""}
                 </p>
               </div>
-              
+
               {/* Profile Image / Initials fallback */}
               <div className="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden flex items-center justify-center bg-primary text-white font-bold">
                 {user ? getInitials() : "?"}
@@ -156,6 +168,17 @@ export function MainLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* New Appointment modal — fixed/overlay, so it's fine to render here regardless of layout structure */}
+      {showNewAppointment && (
+        <AppointmentModal
+          onClose={() => setShowNewAppointment(false)}
+          onCreated={() => {
+            setShowNewAppointment(false);
+            navigate("/appointments");
+          }}
+        />
+      )}
     </div>
   );
 }

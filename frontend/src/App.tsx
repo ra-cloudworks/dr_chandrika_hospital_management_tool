@@ -10,6 +10,9 @@ import { PatientListPage } from "./features/patients/PatientListPage";
 import { NewPatientPage } from "./features/patients/NewPatientPage";
 import { PatientDetailPage } from "./features/patients/PatientDetailPage";
 import { DuplicateQueuePage } from "./features/duplicates/DuplicateQueuePage";
+// Appointment Booking
+import { PublicBookingPage } from "./features/appointments/PublicBookingPage";
+import { StaffAppointmentsPage } from "./features/appointments/StaffAppointmentsPage";
 
 function App() {
   return (
@@ -18,6 +21,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/book-appointment" element={<PublicBookingPage />} />
 
           {/* Protected Layout Routes */}
           <Route element={<ProtectedRoute />}>
@@ -40,6 +44,7 @@ function App() {
                 <Route path="/patients/new" element={<NewPatientPage />} />
                 <Route path="/patients/:id" element={<PatientDetailPage />} />
                 <Route path="/duplicates" element={<DuplicateQueuePage />} />
+                <Route path="/appointments" element={<StaffAppointmentsPage />} />
               </Route>
             </Route>
           </Route>

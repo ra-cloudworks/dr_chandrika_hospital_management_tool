@@ -126,12 +126,12 @@ export default function LoginPage() {
       <div className="w-full max-w-[460px] relative z-10 transition-all duration-500 animate-in fade-in slide-in-from-bottom-8 duration-700">
         
         {/* Top Status Badge */}
-        <div className="flex justify-center mb-6">
+        {/* <div className="flex justify-center mb-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-outline-variant/60 shadow-[0_2px_8px_rgba(0,0,0,0.02)] text-[11px] font-semibold text-secondary">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
             <span>Clinical Node Online</span>
           </div>
-        </div>
+        </div> */}
 
         {/* Login Card */}
         <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-primary-container/10 p-8 shadow-[0_20px_50px_rgba(0,104,95,0.06)] relative overflow-hidden">
@@ -277,7 +277,6 @@ export default function LoginPage() {
         <div className="mt-8 flex items-center justify-center gap-3 text-outline text-[11px] font-medium">
           <span>Dr. Chandrika Dental Care v2.4.1</span>
           <span className="text-outline-variant">•</span>
-          <span>HIPAA Compliant</span>
         </div>
 
       </div>

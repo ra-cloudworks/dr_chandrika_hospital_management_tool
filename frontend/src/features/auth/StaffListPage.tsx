@@ -174,10 +174,10 @@ export default function StaffListPage() {
 
         {/* Action Controls */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-          <button className="flex items-center gap-2 px-4 py-2.5 border border-outline-variant rounded-lg text-secondary font-label-md hover:bg-surface-container-low transition-colors">
+          {/* <button className="flex items-center gap-2 px-4 py-2.5 border border-outline-variant rounded-lg text-secondary font-label-md hover:bg-surface-container-low transition-colors">
             <span className="material-symbols-outlined">filter_list</span>
             <span>Advanced Filters</span>
-          </button>
+          </button> */}
           
           {currentUser?.role === "chief_doctor" && (
             <button

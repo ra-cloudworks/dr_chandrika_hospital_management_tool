@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'treatment_plans',
     'case_files',
     'case_media',
+    'appointments',
 ]
 
 REST_FRAMEWORK = {
