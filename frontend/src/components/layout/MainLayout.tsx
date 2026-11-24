@@ -9,6 +9,9 @@ const ROUTE_TITLES: Record<string, string> = {
   "/staff": "Staff Management",
   "/patients": "Patient Records",
   "/appointments": "Appointments",
+  "/lab-orders": "Laboratory Management",
+  "/inventory": "Inventory & Equipment",
+  "/billing": "Billing & Payments",
   "/history": "Login History",
   "/profile": "My Profile",
 };
@@ -91,11 +94,29 @@ export function MainLayout() {
             <span>Appointments</span>
           </Link>
 
+          {/* Lab Orders link */}
+          <Link to="/lab-orders" className={getLinkClass("/lab-orders")}>
+            <span className="material-symbols-outlined">science</span>
+            <span>Lab Orders</span>
+          </Link>
+
+          {/* Inventory & Equipment link */}
+          <Link to="/inventory" className={getLinkClass("/inventory")}>
+            <span className="material-symbols-outlined">inventory_2</span>
+            <span>Inventory</span>
+          </Link>
+
           {/* Login History link */}
           {/* <Link to="/history" className={getLinkClass("/history")}>
             <span className="material-symbols-outlined">history</span>
             <span>Login History</span>
           </Link> */}
+
+          {/* Billing link */}
+          <Link to="/billing" className={getLinkClass("/billing")}>
+            <span className="material-symbols-outlined">receipt_long</span>
+            <span>Billing</span>
+          </Link>
 
           {/* Profile link */}
           <Link to="/profile" className={getLinkClass("/profile")}>

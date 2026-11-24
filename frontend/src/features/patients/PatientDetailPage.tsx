@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { getPatient } from "../../api/patientApi";
 import type { PatientDetail } from "../../types/patient.types";
 import { MedicalHistoryTab } from "./components/MedicalHistoryTab";
+import { AllergiesTab } from "./components/AllergiesTab";
 
 // Vitals
 import { listPatientVitals, recordVitals } from "../../api/vitalsApi";
@@ -39,8 +40,11 @@ import { listMedia, uploadMedia, softDeleteMedia } from "../../api/caseMediaApi"
 import type { MediaFile } from "../../types/caseMedia.types";
 import { MediaUploadForm } from "../case-media/components/MediaUploadForm";
 import { MediaGallery } from "../case-media/components/MediaGallery";
+import { RecallTab } from "./components/RecallTab";
+import { PatientLabOrdersTab } from "./components/PatientLabOrdersTab";
+import { PatientBillingTab } from "../billing/components/PatientBillingTab";
 
-type Tab = "demographics" | "medical" | "allergies" | "vitals" | "dental-chart" | "perio-chart" | "treatment-plan" | "cases" | "media";
+type Tab = "demographics" | "medical" | "allergies" | "vitals" | "dental-chart" | "perio-chart" | "treatment-plan" | "cases" | "media" | "recalls" | "lab-orders" | "billing";
 
 
 export function PatientDetailPage() {
@@ -181,41 +185,61 @@ export function PatientDetailPage() {
   if (!patient) return <p className="p-6">Loading...</p>;
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+      {/* Back button link providing intuitive navigation back to the patient list view */}
+      <div className="mb-4">
+        <Link
+          to="/patients"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-teal-700 transition-colors group"
+        >
+          <svg
+            className="w-4 h-4 transition-transform group-hover:-translate-x-0.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Patients
+        </Link>
+      </div>
+
       <h1 className="text-2xl font-semibold mb-1">
         {patient.first_name} {patient.last_name}
       </h1>
       <p className="text-gray-500 mb-4">{patient.patient_code}</p>
 
-      <div className="flex gap-4 border-b mb-4">
-        {(["demographics", "medical", "allergies", "vitals", "dental-chart", "perio-chart", "treatment-plan", "cases", "media"] as Tab[]).map((t) => (
+      <div className="flex gap-4 border-b mb-4 overflow-x-auto">
+        {(["demographics", "medical", "allergies", "vitals", "dental-chart", "perio-chart", "treatment-plan", "cases", "media", "recalls", "lab-orders", "billing"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`pb-2 capitalize ${tab === t ? "border-b-2 border-teal-600 text-teal-600" : "text-gray-500"}`}
+            className={`pb-2 capitalize whitespace-nowrap ${tab === t ? "border-b-2 border-teal-600 text-teal-600 font-medium" : "text-gray-500"}`}
           >
-            {t}
+            {t.replace("-", " ")}
           </button>
         ))}
       </div>
 
       {tab === "demographics" && (
-        <div className="space-y-1">
+        <div className="space-y-2 bg-white p-4 border rounded-xl shadow-xs">
           <p><strong>Phone:</strong> {patient.phone}</p>
           <p><strong>Email:</strong> {patient.email}</p>
           <p><strong>Address:</strong> {patient.address}</p>
           <p><strong>DOB:</strong> {patient.dob}</p>
+          {patient.no_show_count > 0 && (
+            <p className="text-red-600 font-semibold pt-2 border-t">
+              <strong>No-Show Count:</strong> {patient.no_show_count} {patient.no_show_count === 1 ? "appointment" : "appointments"} missed
+            </p>
+          )}
         </div>
       )}
       {tab === "medical" && (
         <MedicalHistoryTab patientId={patient.id} history={patient.medical_history} onAdded={load} />
       )}
       {tab === "allergies" && (
-        <ul>
-          {patient.allergies.map((a) => (
-            <li key={a.id}>{a.allergen} — {a.severity}</li>
-          ))}
-        </ul>
+        /* Render AllergiesTab component allowing clinical staff to view and record patient allergies */
+        <AllergiesTab patientId={patient.id} allergies={patient.allergies} onAdded={load} />
       )}
       {tab === "vitals" && (
         <div>
@@ -267,6 +291,19 @@ export function PatientDetailPage() {
           <MediaUploadForm onUpload={handleUpload} uploading={uploading} />
           <MediaGallery files={mediaFiles} onDelete={handleDelete} />
         </div>
+      )}
+      {tab === "recalls" && (
+        <RecallTab patientId={patient.id} />
+      )}
+      {tab === "lab-orders" && (
+        <PatientLabOrdersTab patientId={patient.id} />
+      )}
+    
+      {tab === "billing" && (
+        <PatientBillingTab
+          patientId={patient.id}
+          patientName={`${patient.first_name} ${patient.last_name}`}
+        />
       )}
     </div>
   );

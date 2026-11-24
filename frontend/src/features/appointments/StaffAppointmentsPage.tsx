@@ -1,18 +1,23 @@
 import { useEffect, useState } from "react";
 import {
-    listAppointments, appointmentAction, listPendingRequests, confirmRequest, declineRequest,
+    listAppointments, appointmentAction, listPendingRequests, confirmRequest, declineRequest, listRecalls,
 } from "../../api/appointmentApi";
-import type { Appointment } from "../../types/appointment.types";
+import type { Appointment, RecallReminder } from "../../types/appointment.types";
 import { AppointmentCard } from "./components/AppointmentCard";
 import { PendingRequestsPanel } from "./components/PendingRequestsPanel";
+import { WalkInModal } from "./components/WalkInModal";
 
 export function StaffAppointmentsPage() {
     const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [pending, setPending] = useState<Appointment[]>([]);
+    const [upcomingRecalls, setUpcomingRecalls] = useState<RecallReminder[]>([]);
     const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-    // Loads daily confirmed schedule and pending website requests
+    // Modal state for Walk-In Quick Flow
+    const [showWalkInModal, setShowWalkInModal] = useState(false);
+
+    // Loads daily confirmed schedule, pending website requests, and upcoming recalls
     const load = () => {
         listAppointments({ date })
             .then((res) => setAppointments(res.data))
@@ -20,6 +25,9 @@ export function StaffAppointmentsPage() {
         listPendingRequests()
             .then((res) => setPending(res.data))
             .catch(() => setFeedback({ type: "error", text: "Could not load pending website requests." }));
+        listRecalls(undefined, { due_soon: "true" })
+            .then((res) => setUpcomingRecalls(res.data))
+            .catch(() => console.error("Could not load upcoming recalls."));
     };
 
     useEffect(load, [date]);
@@ -30,10 +38,17 @@ export function StaffAppointmentsPage() {
         setTimeout(() => setFeedback(null), 4000);
     };
 
-    const handleAction = async (id: number, action: string) => {
+    const handleAction = async (
+        id: number, action: string, payload?: { cancellation_reason?: string; cancellation_notes?: string }
+    ) => {
+        if (action === "rescheduled") {
+            showNotice("Appointment rescheduled successfully!");
+            load();
+            return;
+        }
         try {
-            await appointmentAction(id, action);
-            showNotice(`Appointment status updated to ${action}.`);
+            await appointmentAction(id, action, payload);
+            showNotice(`Appointment status updated to ${action.replace("-", " ")}.`);
             load();
         } catch (err: any) {
             showNotice(err.response?.data?.detail || "Could not update appointment status.", "error");
@@ -82,12 +97,22 @@ export function StaffAppointmentsPage() {
                             <h1 className="text-xl font-bold text-gray-800">Confirmed Appointments</h1>
                             <p className="text-xs text-gray-500">View and manage checked-in patients for the selected date.</p>
                         </div>
-                        <input
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                        />
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                                type="button"
+                                onClick={() => setShowWalkInModal(true)}
+                                className="px-3.5 py-1.5 text-xs font-bold text-teal-700 bg-teal-50 border border-teal-300 rounded-lg hover:bg-teal-100 transition-colors flex items-center gap-1 shadow-2xs"
+                            >
+                                <span>⚡</span>
+                                <span>Walk-In</span>
+                            </button>
+                            <input
+                                type="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white"
+                            />
+                        </div>
                     </div>
 
                     {appointments.length === 0 ? (
@@ -97,21 +122,61 @@ export function StaffAppointmentsPage() {
                     ) : (
                         <div className="space-y-2">
                             {appointments.map((a) => (
-                                <AppointmentCard key={a.id} appt={a} onAction={handleAction} />
+                                <AppointmentCard key={a.id} appt={a} onAction={handleAction} onRescheduled={load} />
                             ))}
                         </div>
                     )}
                 </div>
 
-                {/* Website Pending Requests Column */}
-                <div className="space-y-3">
-                    <div className="bg-white p-4 rounded-xl border shadow-xs">
-                        <h2 className="font-bold text-gray-800 text-base">Website Requests</h2>
-                        <p className="text-xs text-gray-500 mt-0.5">Pending online bookings awaiting doctor assignment & confirmation.</p>
+                {/* Side Panels Column (Website Requests + Upcoming Recalls) */}
+                <div className="space-y-4">
+                    {/* Website Pending Requests */}
+                    <div className="space-y-2">
+                        <div className="bg-white p-4 rounded-xl border shadow-xs">
+                            <h2 className="font-bold text-gray-800 text-base">Website Requests</h2>
+                            <p className="text-xs text-gray-500 mt-0.5">Pending online bookings awaiting doctor assignment & confirmation.</p>
+                        </div>
+                        <PendingRequestsPanel requests={pending} onConfirm={handleConfirm} onDecline={handleDecline} />
                     </div>
-                    <PendingRequestsPanel requests={pending} onConfirm={handleConfirm} onDecline={handleDecline} />
+
+                    {/* Upcoming Recalls (Next 30 Days) */}
+                    <div className="bg-white p-4 rounded-xl border shadow-xs space-y-3">
+                        <h2 className="font-bold text-gray-800 text-base flex items-center justify-between">
+                            <span>Upcoming Recalls</span>
+                            <span className="text-xs bg-teal-100 text-teal-800 font-semibold px-2 py-0.5 rounded-full">
+                                {upcomingRecalls.length} due
+                            </span>
+                        </h2>
+                        <p className="text-xs text-gray-500">Patients due for routine cleaning / follow-ups in the next 30 days.</p>
+
+                        {upcomingRecalls.length === 0 ? (
+                            <p className="text-xs text-gray-400 italic">No recalls due in the next 30 days.</p>
+                        ) : (
+                            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                                {upcomingRecalls.map((recall) => (
+                                    <div key={recall.id} className="p-2.5 border rounded-lg bg-gray-50 text-xs flex justify-between items-start">
+                                        <div>
+                                            <p className="font-semibold text-gray-800">{recall.patient_name}</p>
+                                            <p className="text-teal-700 capitalize font-medium">{recall.recall_type_display || recall.recall_type.replace("_", " ")}</p>
+                                            <p className="text-gray-400 text-[11px]">Due: {recall.recall_date}</p>
+                                        </div>
+                                        <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                                            {recall.status}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            {/* Walk-In Quick Queue Modal */}
+            <WalkInModal
+                isOpen={showWalkInModal}
+                onClose={() => setShowWalkInModal(false)}
+                onSuccess={() => load()}
+            />
         </div>
     );
 }

@@ -31,6 +31,9 @@ urlpatterns = [
     path("api/case-files/", include("case_files.urls")),
     path("api/case-media/", include("case_media.urls")),
     path("api/appointments/", include("appointments.urls")),
+    path("api/lab/", include("lab_management.urls")),
+    path("api/inventory/", include("inventory.urls")),
+    path("api/billing/", include("billing.urls")),
 ]
 
 if settings.DEBUG:

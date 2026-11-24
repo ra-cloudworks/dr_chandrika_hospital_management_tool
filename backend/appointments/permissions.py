@@ -29,3 +29,17 @@ class AppointmentPermission(BasePermission):
 class StaffOnlyPermission(BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role in CAN_MANAGE
+
+
+class RecallPermission(BasePermission):
+    """
+    Staff members (chief_doctor, doctor, assistant, receptionist) can create and view recalls.
+    Patients can view their own recall reminders (read-only).
+    """
+    def has_permission(self, request, view):
+        user = request.user
+        if not user.is_authenticated:
+            return False
+        if user.role == "patient":
+            return request.method in SAFE_METHODS
+        return user.role in CAN_VIEW_ALL

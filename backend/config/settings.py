@@ -50,6 +50,9 @@ INSTALLED_APPS = [
     'case_files',
     'case_media',
     'appointments',
+    'lab_management',
+    'inventory',
+    'billing',
 ]
 
 REST_FRAMEWORK = {

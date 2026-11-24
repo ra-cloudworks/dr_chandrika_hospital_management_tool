@@ -1,0 +1,40 @@
+from django.urls import path
+from .views import (
+    ClinicFinancialSettingsView,
+    InvoiceListCreateView,
+    InvoiceDetailView,
+    InvoiceLineItemCreateView,
+    InvoiceLineItemDetailView,
+    PriceOverrideView,
+    IssueInvoiceView,
+    DiscountApprovalListView,
+    DiscountApprovalActionView,
+    RecordPaymentView,
+    RefundView,
+    VoidInvoiceView,
+    VoidPaymentView,
+    PatientAccountView,
+    OutstandingInvoicesView,
+    RevenueReportView,
+)
+
+urlpatterns = [
+    path("settings/", ClinicFinancialSettingsView.as_view(), name="billing-settings"),
+    path("<int:patient_id>/", InvoiceListCreateView.as_view(), name="patient-invoices"),
+    path("invoice/<int:pk>/", InvoiceDetailView.as_view(), name="invoice-detail"),
+    path("invoice/<int:pk>/issue/", IssueInvoiceView.as_view(), name="invoice-issue"),
+    path("invoice/<int:invoice_id>/line-items/", InvoiceLineItemCreateView.as_view(), name="invoice-line-items"),
+    path("line-item/<int:pk>/", InvoiceLineItemDetailView.as_view(), name="line-item-detail"),
+    path("line-item/<int:pk>/override-price/", PriceOverrideView.as_view(), name="line-item-override-price"),
+    path("invoice/<int:pk>/record-payment/", RecordPaymentView.as_view(), name="invoice-record-payment"),
+    path("invoice/<int:pk>/void/", VoidInvoiceView.as_view(), name="invoice-void"),
+    path("payment/advance/", RecordPaymentView.as_view(), name="payment-advance"),
+    path("payment/<int:pk>/void/", VoidPaymentView.as_view(), name="payment-void"),
+    path("refund/", RefundView.as_view(), name="billing-refund"),
+    path("discount-requests/", DiscountApprovalListView.as_view(), name="discount-requests-list"),
+    path("discount-requests/<int:pk>/action/", DiscountApprovalActionView.as_view(), name="discount-request-action"),
+    path("patient-account/<int:patient_id>/", PatientAccountView.as_view(), name="patient-account"),
+    path("reports/outstanding/", OutstandingInvoicesView.as_view(), name="reports-outstanding"),
+    path("reports/revenue/", RevenueReportView.as_view(), name="reports-revenue"),
+]
+

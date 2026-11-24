@@ -26,11 +26,12 @@ class AllergySerializer(serializers.ModelSerializer):
 class PatientListSerializer(serializers.ModelSerializer):
     """Light payload for the table view."""
     registered_by_name = serializers.CharField(source="registered_by.get_full_name", read_only=True)
+    no_show_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Patient
         fields = ["id", "patient_code", "first_name", "last_name", "phone",
-                  "dob", "gender", "status", "registered_by_name", "created_at"]
+                  "dob", "gender", "status", "registered_by_name", "no_show_count", "created_at"]
 
 
 class PatientDetailSerializer(serializers.ModelSerializer):
@@ -38,6 +39,7 @@ class PatientDetailSerializer(serializers.ModelSerializer):
     guardians = GuardianSerializer(many=True, read_only=True)
     medical_history = MedicalHistorySerializer(many=True, read_only=True)
     allergies = AllergySerializer(many=True, read_only=True)
+    no_show_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Patient
@@ -47,9 +49,10 @@ class PatientDetailSerializer(serializers.ModelSerializer):
             "preferred_language", "photo", "emergency_contact_name",
             "emergency_contact_phone", "referral_source", "abha_id",
             "status", "guardians", "medical_history", "allergies",
-            "created_at", "updated_at",
+            "no_show_count", "created_at", "updated_at",
         ]
         read_only_fields = ["patient_code", "status"]
+
 
 
 class PatientPortalSerializer(serializers.ModelSerializer):

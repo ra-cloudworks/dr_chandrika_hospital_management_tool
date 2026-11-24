@@ -34,8 +34,10 @@ export interface PatientListItem {
   gender: string;
   status: "active" | "inactive" | "merged";
   registered_by_name: string;
+  no_show_count: number;
   created_at: string;
 }
+
 
 export interface PatientDetail extends PatientListItem {
   email: string;

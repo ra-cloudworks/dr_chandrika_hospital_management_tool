@@ -15,7 +15,10 @@ class PatientListCreateView(generics.ListCreateAPIView):
     permission_classes = [PatientAccessPermission]
 
     def get_queryset(self):
-        qs = Patient.objects.exclude(status="merged").order_by("-created_at")
+        # Dynamically annotate the count of no-show appointments for each patient
+        qs = Patient.objects.annotate(
+            no_show_count=models.Count("appointments", filter=models.Q(appointments__status="no_show"))
+        ).exclude(status="merged").order_by("-created_at")
         search = self.request.query_params.get("search")
         if search:
             qs = qs.filter(first_name__icontains=search) | qs.filter(
@@ -51,13 +54,19 @@ class PatientListCreateView(generics.ListCreateAPIView):
 
 
 class PatientDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Patient.objects.all()
     permission_classes = [PatientObjectPermission]
+
+    def get_queryset(self):
+        # Dynamically annotate the count of no-show appointments for detailed view retrieval
+        return Patient.objects.annotate(
+            no_show_count=models.Count("appointments", filter=models.Q(appointments__status="no_show"))
+        )
 
     def get_serializer_class(self):
         if self.request.user.role == "patient":
             return PatientPortalSerializer
         return PatientDetailSerializer
+
 
     def perform_destroy(self, instance):
         # Soft-delete only — never hard-delete a patient record

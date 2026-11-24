@@ -334,6 +334,170 @@ erDiagram
 
 ---
 
+### Module 6: Appointments & Scheduling (`appointments`)
+
+#### Table: `appointments_appointment`
+| Column | Type | Constraints | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `BIGINT` | `PRIMARY KEY`, `IDENTITY` | — | Primary key |
+| `patient_id` | `BIGINT` | `FK -> patients_patient(id)`, `NULL`, `ON DELETE CASCADE` | — | Patient reference (null for guest public requests) |
+| `guest_name` | `VARCHAR(150)`| `NOT NULL` | `''` | Guest patient name for web booking requests |
+| `guest_phone` | `VARCHAR(15)` | `NOT NULL` | `''` | Guest contact phone for web booking requests |
+| `guest_email` | `VARCHAR(254)`| `NOT NULL` | `''` | Guest contact email for web booking requests |
+| `doctor_id` | `BIGINT` | `FK -> accounts_user(id)`, `NULL`, `ON DELETE SET NULL` | — | Assigned doctor (optional for guest requests) |
+| `chair_id` | `BIGINT` | `FK -> appointments_chair(id)`, `NULL`, `ON DELETE SET NULL` | — | Assigned treatment chair |
+| `appointment_date`| `DATE` | `NOT NULL` | — | Date of appointment |
+| `start_time` | `TIME` | `NOT NULL` | — | Appointment start time |
+| `end_time` | `TIME` | `NOT NULL` | — | Appointment end time |
+| `status` | `VARCHAR(15)` | `NOT NULL`, `CHECK` | `'pending'` | Status: `pending`, `confirmed`, `checked_in`, `in_progress`, `completed`, `cancelled`, `no_show` |
+| `source` | `VARCHAR(20)` | `NOT NULL`, `CHECK` | — | Source: `patient_portal`, `receptionist`, `public_request`, `walk_in` |
+| `is_home_visit` | `BOOLEAN` | `NOT NULL` | `FALSE` | Home visit flag |
+| `home_visit_address`| `TEXT` | `NOT NULL` | `''` | Address for home visit |
+| `reason_for_visit`| `VARCHAR(255)`| `NOT NULL` | `''` | Reason for appointment request |
+| `notes` | `TEXT` | `NOT NULL` | `''` | Additional notes |
+| `cancellation_reason`| `VARCHAR(100)`| `NOT NULL` | `''` | Cancellation / No-Show reason for clinical audit |
+| `cancellation_notes` | `TEXT` | `NOT NULL` | `''` | Additional cancellation / no-show audit notes |
+| `token_number` | `INTEGER` | `NULL` | — | Daily token number assigned upon confirmation |
+| `created_by_id` | `BIGINT` | `FK -> accounts_user(id)`, `NULL` | — | Staff user who created record |
+| `created_at` | `TIMESTAMPTZ` | `NOT NULL` | `CURRENT_TIMESTAMP` | Record creation timestamp |
+| `updated_at` | `TIMESTAMPTZ` | `NOT NULL` | `CURRENT_TIMESTAMP` | Record updated timestamp |
+
+#### Table: `appointments_doctorschedule`
+| Column | Type | Constraints | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `BIGINT` | `PRIMARY KEY`, `IDENTITY` | — | Primary key |
+| `doctor_id` | `BIGINT` | `FK -> accounts_user(id)`, `ON DELETE CASCADE` | — | Doctor reference |
+| `day_of_week` | `SMALLINT` | `NOT NULL`, `CHECK (0-6)` | — | Day: `0=Monday` ... `6=Sunday` |
+| `start_time` | `TIME` | `NOT NULL` | — | Shift start time |
+| `end_time` | `TIME` | `NOT NULL` | — | Shift end time |
+| `slot_duration_minutes`| `SMALLINT` | `NOT NULL` | `30` | Time slot duration in minutes |
+| `default_chair_id`| `BIGINT` | `FK -> appointments_chair(id)`, `NULL` | — | Default chair assigned |
+
+#### Table: `appointments_appointmentreschedulelog`
+| Column | Type | Constraints | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `BIGINT` | `PRIMARY KEY`, `IDENTITY` | — | Primary key |
+| `appointment_id` | `BIGINT` | `FK -> appointments_appointment(id)`, `ON DELETE CASCADE` | — | Referenced appointment |
+| `old_date` | `DATE` | `NOT NULL` | — | Previous date |
+| `old_start_time`| `TIME` | `NOT NULL` | — | Previous start time |
+| `old_end_time` | `TIME` | `NOT NULL` | — | Previous end time |
+| `old_doctor_id` | `BIGINT` | `FK -> accounts_user(id)`, `NULL` | — | Previous doctor |
+| `new_date` | `DATE` | `NOT NULL` | — | Rescheduled date |
+| `new_start_time`| `TIME` | `NOT NULL` | — | Rescheduled start time |
+| `new_end_time` | `TIME` | `NOT NULL` | — | Rescheduled end time |
+| `new_doctor_id` | `BIGINT` | `FK -> accounts_user(id)`, `NULL` | — | Rescheduled doctor |
+| `reason` | `TEXT` | `NOT NULL` | — | Reason for rescheduling |
+| `rescheduled_by_id`| `BIGINT` | `FK -> accounts_user(id)`, `NULL` | — | Staff user who performed reschedule |
+| `rescheduled_at`| `TIMESTAMPTZ` | `NOT NULL` | `CURRENT_TIMESTAMP` | Log timestamp |
+
+
+### 3.12 Module 13: Billing & Financial Governance (`billing`)
+
+#### Table: `billing_clinicfinancialsettings`
+| Column Name | SQL Data Type | Constraints & Modifiers | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `BIGINT` | `PK`, `PRIMARY KEY GENERATED ALWAYS AS IDENTITY` | — | Unique identifier (singleton row) |
+| `discount_approval_threshold_percent` | `NUMERIC(5,2)` | `NOT NULL` | `10.00` | Discount % requiring Chief Doctor approval |
+| `discount_approval_threshold_amount` | `NUMERIC(10,2)` | `NOT NULL` | `2000.00` | Absolute discount requiring Chief Doctor approval |
+| `default_tax_percent` | `NUMERIC(5,2)` | `NOT NULL` | `0.00` | Default GST / tax percentage |
+| `currency_symbol` | `VARCHAR(5)` | `NOT NULL` | `'₹'` | Currency symbol |
+| `invoice_prefix` | `VARCHAR(10)` | `NOT NULL` | `'INV'` | Invoice numbering prefix |
+| `updated_at` | `TIMESTAMPTZ` | `NOT NULL` | `CURRENT_TIMESTAMP` | Last updated timestamp |
+
+#### Table: `billing_invoice`
+| Column Name | SQL Data Type | Constraints & Modifiers | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `BIGINT` | `PK`, `PRIMARY KEY GENERATED ALWAYS AS IDENTITY` | — | Unique internal invoice ID |
+| `invoice_number` | `VARCHAR(20)` | `UNIQUE`, `NOT NULL` | — | Auto-generated sequential invoice code |
+| `patient_id` | `BIGINT` | `FK -> patients_patient(id)`, `ON DELETE CASCADE` | — | Linked patient |
+| `treatment_plan_id` | `BIGINT` | `FK -> treatment_plans_treatmentplan(id)`, `NULL` | — | Source treatment plan |
+| `status` | `VARCHAR(15)` | `NOT NULL` | `'draft'` | draft, issued, partially_paid, paid, overdue, void |
+| `issue_date` | `DATE` | `NULL` | — | Date issued to patient |
+| `due_date` | `DATE` | `NULL` | — | Payment due deadline |
+| `subtotal` | `NUMERIC(12,2)` | `NOT NULL` | `0.00` | Base charges before discount/tax |
+| `total_discount` | `NUMERIC(12,2)` | `NOT NULL` | `0.00` | Approved discounts total |
+| `total_tax` | `NUMERIC(12,2)` | `NOT NULL` | `0.00` | Total taxes applied |
+| `grand_total` | `NUMERIC(12,2)` | `NOT NULL` | `0.00` | Patient-facing total amount |
+| `internal_cost_total` | `NUMERIC(12,2)` | `NOT NULL` | `0.00` | Clinic internal cost outlay (RESTRICTED) |
+| `amount_paid` | `NUMERIC(12,2)` | `NOT NULL` | `0.00` | Cumulative amount paid |
+| `balance_due` | `NUMERIC(12,2)` | `NOT NULL` | `0.00` | Remaining outstanding balance |
+| `notes` | `TEXT` | `NOT NULL` | `''` | Invoice remarks |
+| `void_reason` | `VARCHAR(255)` | `NOT NULL` | `''` | Justification if voided |
+| `created_by_id` | `BIGINT` | `FK -> accounts_user(id)`, `NULL` | — | Creator staff user |
+| `created_at` | `TIMESTAMPTZ` | `NOT NULL` | `CURRENT_TIMESTAMP` | Creation timestamp |
+| `updated_at` | `TIMESTAMPTZ` | `NOT NULL` | `CURRENT_TIMESTAMP` | Last updated timestamp |
+
+#### Table: `billing_invoicelineitem`
+| Column Name | SQL Data Type | Constraints & Modifiers | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `BIGINT` | `PK`, `PRIMARY KEY GENERATED ALWAYS AS IDENTITY` | — | Primary key |
+| `invoice_id` | `BIGINT` | `FK -> billing_invoice(id)`, `ON DELETE CASCADE` | — | Parent invoice |
+| `treatment_plan_item_id` | `BIGINT` | `FK -> treatment_plans_treatmentplanitem(id)`, `NULL` | — | Source procedure |
+| `description` | `VARCHAR(255)` | `NOT NULL` | — | Procedure/service description |
+| `tooth_number` | `VARCHAR(50)` | `NOT NULL` | `''` | Tooth FDI notation |
+| `quantity` | `NUMERIC(6,2)` | `NOT NULL` | `1.00` | Charged quantity |
+| `unit_price` | `NUMERIC(10,2)` | `NOT NULL` | `0.00` | Patient-facing unit price |
+| `internal_unit_cost` | `NUMERIC(10,2)` | `NOT NULL` | `0.00` | Clinic unit cost (RESTRICTED) |
+| `discount_amount` | `NUMERIC(10,2)` | `NOT NULL` | `0.00` | Concession given |
+| `discount_approved` | `BOOLEAN` | `NOT NULL` | `FALSE` | Sign-off approval status |
+| `tax_amount` | `NUMERIC(10,2)` | `NOT NULL` | `0.00` | GST / tax component |
+| `notes` | `TEXT` | `NOT NULL` | `''` | Procedure notes |
+
+#### Table: `billing_discountapprovalrequest`
+| Column Name | SQL Data Type | Constraints & Modifiers | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `BIGINT` | `PK`, `PRIMARY KEY GENERATED ALWAYS AS IDENTITY` | — | Primary key |
+| `invoice_id` | `BIGINT` | `FK -> billing_invoice(id)`, `ON DELETE CASCADE` | — | Associated invoice |
+| `line_item_id` | `BIGINT` | `FK -> billing_invoicelineitem(id)`, `ON DELETE CASCADE` | — | Target line item |
+| `requested_discount_amount` | `NUMERIC(10,2)` | `NOT NULL` | — | Concession amount requested |
+| `discount_percent` | `NUMERIC(5,2)` | `NOT NULL` | — | Concession percentage |
+| `reason` | `TEXT` | `NOT NULL` | — | Mandatory doctor justification |
+| `status` | `VARCHAR(10)` | `NOT NULL` | `'pending'` | pending, approved, rejected |
+| `requested_by_id` | `BIGINT` | `FK -> accounts_user(id)`, `NULL` | — | Clinician requesting discount |
+| `reviewed_by_id` | `BIGINT` | `FK -> accounts_user(id)`, `NULL` | — | Chief Doctor who reviewed |
+| `review_notes` | `TEXT` | `NOT NULL` | `''` | Chief Doctor review notes |
+| `requested_at` | `TIMESTAMPTZ` | `NOT NULL` | `CURRENT_TIMESTAMP` | Request timestamp |
+| `reviewed_at` | `TIMESTAMPTZ` | `NULL` | — | Decision timestamp |
+
+#### Table: `billing_payment`
+| Column Name | SQL Data Type | Constraints & Modifiers | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `BIGINT` | `PK`, `PRIMARY KEY GENERATED ALWAYS AS IDENTITY` | — | Primary key |
+| `payment_number` | `VARCHAR(20)` | `UNIQUE`, `NOT NULL` | — | Auto-generated sequential payment number (`PAY00001`) |
+| `invoice_id` | `BIGINT` | `FK -> billing_invoice(id)`, `NULL` | — | Linked invoice (NULL for advances) |
+| `patient_id` | `BIGINT` | `FK -> patients_patient(id)`, `ON DELETE CASCADE` | — | Patient profile |
+| `payment_type` | `VARCHAR(10)` | `NOT NULL` | `'payment'` | payment, advance, refund |
+| `amount` | `NUMERIC(12,2)` | `NOT NULL` | — | Transaction amount |
+| `payment_method` | `VARCHAR(15)` | `NOT NULL` | — | cash, card, upi, bank_transfer, cheque, insurance |
+| `reference_number` | `VARCHAR(100)` | `NOT NULL` | `''` | UPI/Cheque/Transaction reference |
+| `payment_date` | `DATE` | `NULL` | — | Transaction date |
+| `notes` | `TEXT` | `NOT NULL` | `''` | Transaction remarks |
+| `is_voided` | `BOOLEAN` | `NOT NULL` | `FALSE` | Void status flag |
+| `void_reason` | `VARCHAR(255)` | `NOT NULL` | `''` | Mandatory void justification |
+| `recorded_by_id` | `BIGINT` | `FK -> accounts_user(id)`, `NULL` | — | Staff user who recorded payment |
+| `created_at` | `TIMESTAMPTZ` | `NOT NULL` | `CURRENT_TIMESTAMP` | Creation timestamp |
+
+#### Table: `billing_priceoverridelog`
+| Column Name | SQL Data Type | Constraints & Modifiers | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `BIGINT` | `PK`, `PRIMARY KEY GENERATED ALWAYS AS IDENTITY` | — | Primary key |
+| `line_item_id` | `BIGINT` | `FK -> billing_invoicelineitem(id)`, `ON DELETE CASCADE` | — | Overridden procedure |
+| `old_price` | `NUMERIC(10,2)` | `NOT NULL` | — | Previous fee |
+| `new_price` | `NUMERIC(10,2)` | `NOT NULL` | — | Overridden fee |
+| `reason` | `VARCHAR(255)` | `NOT NULL` | — | Mandatory clinical justification |
+| `changed_by_id` | `BIGINT` | `FK -> accounts_user(id)`, `NULL` | — | Doctor who performed override |
+| `changed_at` | `TIMESTAMPTZ` | `NOT NULL` | `CURRENT_TIMESTAMP` | Timestamp |
+
+#### Table: `billing_patientaccount`
+| Column Name | SQL Data Type | Constraints & Modifiers | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `BIGINT` | `PK`, `PRIMARY KEY GENERATED ALWAYS AS IDENTITY` | — | Primary key |
+| `patient_id` | `BIGINT` | `FK -> patients_patient(id)`, `UNIQUE`, `ON DELETE CASCADE` | — | Patient profile (1:1) |
+| `credit_balance` | `NUMERIC(12,2)` | `NOT NULL` | `0.00` | Unallocated prepaid advance credit |
+| `updated_at` | `TIMESTAMPTZ` | `NOT NULL` | `CURRENT_TIMESTAMP` | Last updated timestamp |
+
+---
+
 ## 4. Execution & Setup Instructions
 
 ### Method A: Direct Execution of `schema.sql` on PostgreSQL

@@ -13,6 +13,9 @@ import { DuplicateQueuePage } from "./features/duplicates/DuplicateQueuePage";
 // Appointment Booking
 import { PublicBookingPage } from "./features/appointments/PublicBookingPage";
 import { StaffAppointmentsPage } from "./features/appointments/StaffAppointmentsPage";
+import { LabOrdersPage } from "./features/lab-management/LabOrdersPage";
+import { InventoryPage } from "./features/inventory/InventoryPage";
+import { BillingPage } from "./features/billing/BillingPage";
 
 function App() {
   return (
@@ -45,6 +48,9 @@ function App() {
                 <Route path="/patients/:id" element={<PatientDetailPage />} />
                 <Route path="/duplicates" element={<DuplicateQueuePage />} />
                 <Route path="/appointments" element={<StaffAppointmentsPage />} />
+                <Route path="/lab-orders" element={<LabOrdersPage />} />
+                <Route path="/inventory" element={<InventoryPage />} />
+                <Route path="/billing" element={<BillingPage />} />
               </Route>
             </Route>
           </Route>

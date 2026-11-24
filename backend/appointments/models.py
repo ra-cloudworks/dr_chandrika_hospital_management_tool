@@ -78,6 +78,11 @@ class Appointment(models.Model):
 
     reason_for_visit = models.CharField(max_length=255, blank=True)
     notes = models.TextField(blank=True)
+    
+    # Cancellation & No-Show tracking fields for clinical auditing
+    cancellation_reason = models.CharField(max_length=100, blank=True)
+    cancellation_notes = models.TextField(blank=True)
+
     token_number = models.PositiveIntegerField(null=True, blank=True, editable=False)
 
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="appointments_created")
@@ -113,3 +118,52 @@ class Waitlist(models.Model):
     notes = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.WAITING)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class AppointmentRescheduleLog(models.Model):
+    """Logs history of date, time, or doctor changes when an appointment is rescheduled."""
+    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name="reschedule_logs")
+    old_date = models.DateField()
+    old_start_time = models.TimeField()
+    old_end_time = models.TimeField()
+    old_doctor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="reschedule_logs_old")
+    new_date = models.DateField()
+    new_start_time = models.TimeField()
+    new_end_time = models.TimeField()
+    new_doctor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="reschedule_logs_new")
+    reason = models.TextField()
+    rescheduled_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="reschedules_performed")
+    rescheduled_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Reschedule for Appt #{self.appointment_id} on {self.rescheduled_at.strftime('%Y-%m-%d %H:%M')}"
+
+
+class RecallReminder(models.Model):
+    """Tracks future recall/repeat visits due for a patient (e.g. 6-month cleaning/checkup)."""
+    class RecallType(models.TextChoices):
+        CLEANING = "cleaning", "Cleaning"
+        CHECKUP = "checkup", "Checkup"
+        ORTHODONTIC_REVIEW = "orthodontic_review", "Orthodontic Review"
+        POST_TREATMENT_REVIEW = "post_treatment_review", "Post-Treatment Review"
+        CUSTOM = "custom", "Custom"
+
+    class Status(models.TextChoices):
+        SCHEDULED = "scheduled", "Scheduled"
+        NOTIFIED = "notified", "Notified"
+        BOOKED = "booked", "Booked"
+        EXPIRED = "expired", "Expired"
+        CANCELLED = "cancelled", "Cancelled"
+
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="recall_reminders")
+    recall_type = models.CharField(max_length=30, choices=RecallType.choices)
+    custom_reason = models.CharField(max_length=255, blank=True)
+    recall_date = models.DateField()
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="recalls_created")
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.SCHEDULED)
+    linked_appointment = models.ForeignKey(Appointment, on_delete=models.SET_NULL, null=True, blank=True, related_name="linked_recalls")
+    notes = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"Recall for {self.patient} on {self.recall_date} ({self.get_recall_type_display()})"

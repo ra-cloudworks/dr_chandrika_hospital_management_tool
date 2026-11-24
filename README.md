@@ -23,6 +23,10 @@ A modern, full-stack Electronic Health Record (EHR) and clinical workflow manage
    - [7. Treatment Planning & Consent (`treatment_plans`)](#7-treatment-planning--consent-treatment_plans)
    - [8. Clinical Case Files (`case_files`)](#8-clinical-case-files-case_files)
    - [9. Case Media & File Management (`case_media`)](#9-case-media--file-management-case_media)
+   - [10. Appointments & Public Booking Management (`appointments`)](#10-appointments--public-booking-management-appointments)
+   - [11. Laboratory Management (`lab_management`)](#11-laboratory-management-lab_management)
+   - [12. Inventory & Equipment Management (`inventory`)](#12-inventory--equipment-management-inventory)
+   - [13. Billing & Financial Governance (`billing`)](#13-billing--financial-governance-billing)
 4. [Technology Stack](#-technology-stack)
 5. [System Architecture & Data Flow](#-system-architecture--data-flow)
 6. [Getting Started & Installation](#-getting-started--installation)
@@ -55,6 +59,15 @@ Healthcare practices—especially combined dental and general outpatient clinics
 * **Comparative Clinical History:** Immutable event logging per tooth and historical periodontal examination visual comparisons.
 * **Problem-Oriented Case Files:** End-to-end clinical problem tracking grouping visit notes, patient complaints, clinical findings, interventions, batch-tracked materials for traceability, and multi-visit timelines under issue-specific folders.
 * **Digital Case Media & File Management:** Storage, retrieval, and browser rendering of X-rays, clinical photos, and consent documents with automatic patient/case linking, version retention on re-upload, and audit-logged removal restricted to Chief Doctors.
+* **Appointment Reschedule Audit Flow:** Enables rescheduling of confirmed/checked-in appointments with mandatory conflict validation and automated logging of old date, time, and doctor values in `AppointmentRescheduleLog`.
+* **Dynamic No-Show Tracking:** Dynamic database annotation displaying patient no-show counts on patient table lists and profile detail pages to alert staff of attendance patterns.
+* **Recall & Repeat Visit Management (`RecallReminder`):** Dedicated future visit reminder tracking allowing clinicians to schedule target return dates (cleaning, checkups, orthodontic reviews) with due-soon filtering and lifecycle status management.
+* **Public Appointment Request Workflow:** Dedicated public booking portal allowing external patients to request appointments by specifying name, phone, mandatory guest email, date, time slot, and reason for visit (skipping doctor selection).
+* **Receptionist Confirmation & Auto-Registration:** Streamlined pending request management where receptionists review website requests, select/assign an available doctor, and confirm. Automatically matches existing patient profiles by phone number or creates new patient accounts without manual ID entry.
+* **Dynamic Slot Availability & Doctor Schedule Validation:** Real-time checking of doctor working days (`DoctorSchedule`) and existing confirmed/completed bookings to dynamically disable occupied slots (`11:00 - 11:30 (Booked)`) and prevent double-booking.
+* **Walk-In Quick Queue Flow (`WalkInModal.tsx`):** Enables receptionists to fast-track walk-in patients immediately into today's queue in a single step, with auto-patient lookup/registration, optional doctor preference, auto-assignment to the least-loaded doctor, and instant daily token assignment (`#3`).
+* **Cancellation & No-Show Reason Audit Tracking:** Mandatory reason capture and notes modal (`CancelReasonModal.tsx`) when cancelling or marking no-shows (`cancellation_reason`, `cancellation_notes`) to maintain structured clinical audit logs and pattern analytics.
+
 
 ---
 
@@ -130,6 +143,43 @@ Healthcare practices—especially combined dental and general outpatient clinics
   * **Multipart File Uploads:** Supports binary multi-part form data uploads handling actual media files beyond traditional JSON API payloads.
   * **Browser Media Serving:** Implements media file serving endpoints and proper headers enabling inline browser viewing of X-rays, photos, and document previews.
 * **Why included:** Eliminates paper file clutter while safeguarding sensitive diagnostic media. Automated linking ensures quick access during procedures, while versioning and restricted deletion protect the practice against accidental data loss or legal non-compliance.
+
+<!-- Module 10: Appointments & Public Booking Management Documentation -->
+### 10. Appointments & Public Booking Management (`appointments`)
+* **What it does:** Manages clinic appointments, public guest booking requests, doctor working schedules, real-time slot availability, and appointment rescheduling:
+  * **Public Booking Request Portal (`PublicBookingPage.tsx`):** Enables non-registered external patients to submit appointment requests online. Patients provide their name, phone number, mandatory guest email address, preferred date, start time, and reason for visit without needing to choose a doctor up front.
+  * **Pending Website Requests Queue (`PendingRequestsPanel.tsx`):** Isolates unconfirmed public requests (`status="pending"`) from the main daily clinical schedule. Receptionists can review requests, select an available doctor for the date/time, and confirm the appointment.
+  * **Automated Patient Linking & Profile Creation:** Upon confirmation, the backend automatically checks if the patient already exists by phone number (`guest_phone`). If matched, the appointment is linked to the existing `Patient` profile; if not, a new `Patient` account is automatically created without manual ID entry.
+  * **Dynamic Slot Availability & Doctor Schedules (`DoctorSchedule`):** Verifies doctor working days and calculates 30-minute time slots. Slots already taken by confirmed or completed appointments are automatically grayed out and labeled as `(Booked)` with active UI highlights (`SlotPicker.tsx`) to prevent double-booking.
+  * **Walk-In Quick Flow (`WalkInAppointmentView` & `WalkInModal.tsx`):** Fast-tracks unscheduled walk-in patients immediately into today's queue. Automatically scans doctor working schedules to auto-assign the earliest slot to the least-loaded doctor, issuing an instant token number (`#3`).
+  * **Cancellation Reason Audit Tracking (`CancelReasonModal.tsx`):** Enforces structured reason selection (`cancellation_reason`) and notes (`cancellation_notes`) when staff cancels an appointment or marks a patient as no-show, storing audit records for clinical practice analytics.
+  * **Email Notification Service Placeholders:** Integrates backend hooks (`// TODO: EMAIL INTEGRATION SERVICE`) for sending confirmation emails or reschedule notification options to patients upon receptionist action.
+<!-- Module 11: Laboratory Management Documentation -->
+### 11. Laboratory Management (`lab_management`)
+* **What it does:** Tracks and manages prosthetic lab fabrications sent to external dental laboratories (crowns, bridges, dentures, veneers, implant crowns, orthodontic appliances, night guards, retainers):
+  * **External Dental Lab Profiles (`DentalLab`):** Manages external lab profiles, contact details, addresses, and active partnership statuses (restricted to Chief Doctor for creation/updates).
+  * **Prosthetic Lab Orders (`LabOrder`):** Records work specifications, FDI tooth mapping, material selection (Zirconia, PFM, E-max), shade selection (A2, B1), brand details, impression modality (physical vs. digital intraoral scan), special instructions, lab cost vs. patient charge, and promised delivery dates.
+  * **Sequential Auto-Generated Order Identifiers:** Auto-generates unique sequential identifiers (`LAB00001`, `LAB00002`...) for reliable tracking across communication channels.
+  * **State Transition Engine (`VALID_TRANSITIONS`):** Enforces a strict status workflow (`draft` → `sent_to_lab` → `in_fabrication` → `trial_ready` → `trial_done` → `delivered` → `accepted` / `rejected`), preventing invalid state jumps.
+  * **Remake Request Lifecycle & Counter:** Supports remake requests (`remake_requested`) requiring mandatory notes explaining clinical reasons for remake (shade mismatch, contact tightness) and automatically incrementing `remake_count`.
+  * **Doctor Quality Acceptance & Delivery Logistics:** Auto-sets actual delivery date on delivery, captures courier name and tracking details, and records doctor quality inspection sign-offs.
+  * **Overdue Order Alerting & Standalone Dashboard:** Displays a red warning banner (`OverdueBanner.tsx`) for past-due orders and provides a filterable management dashboard (`LabOrdersPage.tsx`) alongside patient-specific chart tabs (`PatientLabOrdersTab.tsx`).
+  * **Comprehensive System Audit Logging:** Every order creation, update, and status transition automatically creates immutable records in `LabOrderStatusLog` and system-wide `AuditLog`.
+* **Why included:** Replaces paper slips and informal WhatsApp messaging with structured digital tracking, eliminating missed delivery dates, lost remakes, unrecorded lab costs, and missing quality records.
+
+<!-- Module 12: Inventory & Equipment Management Documentation -->
+### 12. Inventory & Equipment Management (`inventory`)
+* **What it does:** Tracks consumable dental supplies (anesthetics, gloves, composites, bonding agents, pouches) and clinic machinery/assets (autoclaves, X-ray machines, dental chairs, compressors):
+  * **Browsable Stock Categories (`ItemCategory`):** Categorizes inventory into browsable groups.
+  * **Consumable Stock Items (`InventoryItem`):** Auto-generates unique item codes (`INV00001`), tracks current stock, minimum stock alert thresholds, suggested reorder quantities, unit cost, and selling price.
+  * **Stock Batches & Expiry Management (`StockBatch`):** Tracks lot numbers, remaining quantities, supplier invoices, and expiration dates. Highlights expired batches in red and soon-expiring batches (within 30 days) in amber.
+  * **Atomic Stock Movement Transactions (`StockTransaction`):** Logs receiving, consumption, adjustments, disposals, and returns inside atomic transactions, keeping stock summary fields strictly in sync.
+  * **Clinic Equipment Assets (`Equipment`):** Auto-generates asset codes (`EQP00001`), tracks serial numbers, locations, warranty dates, and operational status (`active`, `under_maintenance`, `decommissioned`).
+  * **Equipment Maintenance Logging (`MaintenanceLog`):** Logs calibrations, repairs, inspections, external technician details, costs, and scheduled next due dates.
+  * **Real-time Alert Banners & Dashboards:** Displays low-stock alert banners (`LowStockBanner.tsx`), batch expiry warnings (`ExpiryBanner.tsx`), and equipment maintenance due notifications (`MaintenanceDueBanner.tsx`).
+  * **Audit Log Compliance:** Writes immutable `AuditLog` entries for every stock and equipment create/update action.
+* **Why included:** Prevents running out of critical clinical supplies during surgical procedures, reduces loss from expired materials, and ensures clinic equipment is safely calibrated and maintained.
+* **Future Enhancement:** `# TODO: Wire automatic stock deduction from case_files.MaterialUsed when visit note is saved.`
 
 ---
 
@@ -209,13 +259,24 @@ Healthcare practices—especially combined dental and general outpatient clinics
    ```
 3. Install dependencies:
    ```bash
-   pip install django djangorestframework djangorestframework-simplejwt django-cors-headers
+   pip install -r requirements.txt
    ```
 4. Run migrations:
    ```bash
    python manage.py migrate
    ```
-5. Start the development server:
+5. Seed complete sample data (recommended for testing):
+   ```bash
+   python manage.py seed_sample_data --clear
+   ```
+   *Default test users (password `password123` for all):*
+   - Chief Doctor: `chandrika`
+   - Doctor: `dr_ramesh`
+   - Receptionist: `kavitha`
+   - Accountant: `suresh`
+   - Patient Portal: `patient_rajesh`
+
+6. Start the development server:
    ```bash
    python manage.py runserver
    ```
